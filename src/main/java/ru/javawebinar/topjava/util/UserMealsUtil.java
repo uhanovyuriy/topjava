@@ -3,9 +3,11 @@ package ru.javawebinar.topjava.util;
 import ru.javawebinar.topjava.model.UserMeal;
 import ru.javawebinar.topjava.model.UserMealWithExcess;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,15 +23,59 @@ public class UserMealsUtil {
                 new UserMeal(LocalDateTime.of(2020, Month.JANUARY, 31, 20, 0), "Ужин", 410)
         );
 
-        List<UserMealWithExcess> mealsTo = filteredByCycles(meals, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000);
+        List<UserMealWithExcess> mealsTo = filteredByCycles(meals, LocalTime.of(7, 0), LocalTime.of(21, 0), 2000);
         mealsTo.forEach(System.out::println);
 
 //        System.out.println(filteredByStreams(meals, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000));
     }
 
     public static List<UserMealWithExcess> filteredByCycles(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
-        // TODO return filtered list with excess. Implement by cycles
-        return null;
+        final List<UserMealWithExcess> result = new ArrayList<>();
+        int sumCalories = 0;
+        for (int i = 0; i < meals.size(); i++) {
+            final UserMeal meal = meals.get(i);
+            sumCalories += meal != null ? meal.getCalories() : 0;
+            if (isBetween(meal, startTime, endTime)) {
+                final int day = meals.get(i).getDateTime().getDayOfMonth();
+                int countDays = 0;
+                final List<UserMealWithExcess> tempList = new ArrayList<>();
+                for (int j = i; j < meals.size(); j++) {
+                    final int nextDay = j + 1 < meals.size() ? meals.get(j + 1).getDateTime().getDayOfMonth() : 0;
+                    final UserMeal tempMeal = meals.get(j);
+                    if (day == nextDay) {
+                        if (isBetween(tempMeal, startTime, endTime)) {
+                            tempList.add(new UserMealWithExcess(tempMeal.getDateTime(), tempMeal.getDescription(), tempMeal.getCalories(), false));
+                        }
+                        sumCalories += meals.get(j + 1).getCalories();
+                        countDays++;
+                    }
+                    if (day != nextDay) {
+                        if (isBetween(tempMeal, startTime, endTime)) {
+                            tempList.add(new UserMealWithExcess(tempMeal.getDateTime(), tempMeal.getDescription(), tempMeal.getCalories(), false));
+                        }
+                        if (sumCalories > caloriesPerDay) {
+                            for (UserMealWithExcess mealWithExcess : tempList) {
+                                mealWithExcess.setExcess(true);
+                            }
+                        }
+                        i += countDays;
+
+                        result.addAll(tempList);
+                        sumCalories = 0;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static boolean isBetween(UserMeal meal, LocalTime startTime, LocalTime endTime) {
+        return meal != null && meal.getDateTime().isAfter(LocalDateTime.of(LocalDate.of(meal.getDateTime().getYear(),
+                meal.getDateTime().getMonth(), meal.getDateTime().getDayOfMonth()), startTime))
+                && meal.getDateTime().isBefore(LocalDateTime.of(LocalDate.of(meal.getDateTime().getYear(),
+                meal.getDateTime().getMonth(), meal.getDateTime().getDayOfMonth()), endTime));
     }
 
     public static List<UserMealWithExcess> filteredByStreams(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
