@@ -10,6 +10,9 @@ import java.time.Month;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class UserMealsUtil {
     public static void main(String[] args) {
@@ -23,10 +26,10 @@ public class UserMealsUtil {
                 new UserMeal(LocalDateTime.of(2020, Month.JANUARY, 31, 20, 0), "Ужин", 410)
         );
 
-        List<UserMealWithExcess> mealsTo = filteredByCycles(meals, LocalTime.of(7, 0), LocalTime.of(21, 0), 2000);
+        List<UserMealWithExcess> mealsTo = filteredByCycles(meals, LocalTime.of(7, 0), LocalTime.of(14, 0), 2000);
         mealsTo.forEach(System.out::println);
 
-//        System.out.println(filteredByStreams(meals, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000));
+        System.out.println(filteredByStreams(meals, LocalTime.of(7, 0), LocalTime.of(14, 0), 2000));
     }
 
     public static List<UserMealWithExcess> filteredByCycles(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
@@ -78,8 +81,26 @@ public class UserMealsUtil {
                 meal.getDateTime().getMonth(), meal.getDateTime().getDayOfMonth()), endTime));
     }
 
-    public static List<UserMealWithExcess> filteredByStreams(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
-        // TODO Implement by streams
-        return null;
+    public static List<UserMealWithExcess> filteredByStreams(List<UserMeal> meals, LocalTime startTime,
+                                                             LocalTime endTime, int caloriesPerDay) {
+        final Predicate<UserMealWithExcess> betweenPredicate = meal -> meal.getDateTime()
+                .isAfter(LocalDateTime.of(LocalDate.of(meal.getDateTime().getYear(),
+                meal.getDateTime().getMonth(), meal.getDateTime().getDayOfMonth()), startTime))
+                && meal.getDateTime().isBefore(LocalDateTime.of(LocalDate.of(meal.getDateTime().getYear(),
+                meal.getDateTime().getMonth(), meal.getDateTime().getDayOfMonth()), endTime));
+
+        final Predicate<List<UserMeal>> excessPredicate = userMeals -> userMeals.stream()
+                .mapToInt(UserMeal::getCalories).sum() > caloriesPerDay;
+
+        final List<UserMealWithExcess> mealWithExcesses = new ArrayList<>();
+
+        meals.stream()
+                .collect(Collectors.groupingBy(userMeal -> userMeal.getDateTime().getDayOfMonth())).values().stream()
+                .map(userMeals -> userMeals.stream()
+                        .map(userMeal -> new UserMealWithExcess(userMeal, excessPredicate.test(userMeals)))
+                        .filter(betweenPredicate)).forEach(userMealWithExcessStream -> userMealWithExcessStream
+                        .forEach(mealWithExcesses::add));
+
+        return mealWithExcesses;
     }
 }

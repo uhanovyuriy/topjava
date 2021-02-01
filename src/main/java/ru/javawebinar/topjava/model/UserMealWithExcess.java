@@ -18,8 +18,19 @@ public class UserMealWithExcess {
         this.excess = excess;
     }
 
+    public UserMealWithExcess(UserMeal userMeal, boolean excess) {
+        this.dateTime = userMeal.getDateTime();
+        this.description = userMeal.getDescription();
+        this.calories = userMeal.getCalories();
+        this.excess = excess;
+    }
+
     public void setExcess(boolean excess) {
         this.excess = excess;
+    }
+
+    public LocalDateTime getDateTime() {
+        return dateTime;
     }
 
     @Override
