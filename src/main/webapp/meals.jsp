@@ -24,6 +24,12 @@
                     </td>
                     <td>${meal.description}</td>
                     <td>${meal.calories}</td>
+                    <td>
+                        <a href="meals?action=update&id=<c:out value="${meal.id}"/>">Edit</a>
+                    </td>
+                    <td>
+                        <a href="meals?action=delete&id=<c:out value="${meal.id}"/>">Delete</a>
+                    </td>
                 </tr>
             </c:if>
             <c:if test="${!meal.excess}">
@@ -33,10 +39,19 @@
                     </td>
                     <td>${meal.description}</td>
                     <td>${meal.calories}</td>
+                    <td>
+                        <a href="meals?action=update&id=<c:out value="${meal.id}"/>">Edit</a>
+                    </td>
+                    <td>
+                        <a href="meals?action=delete&id=<c:out value="${meal.id}"/>">Delete</a>
+                    </td>
                 </tr>
             </c:if>
         </c:forEach>
     </table>
+    <p>
+        <a href="meals?action=create">Create meal</a>
+    </p>
 </h2>
 </body>
 </html>
