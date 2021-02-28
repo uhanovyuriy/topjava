@@ -60,6 +60,10 @@ public class User extends AbstractNamedEntity {
     public User() {
     }
 
+    public User(int id) {
+        this.id = id;
+    }
+
     public User(User u) {
         this(u.getId(), u.getName(), u.getEmail(), u.getPassword(), u.getCaloriesPerDay(), u.isEnabled(), u.getRegistered(), u.getRoles());
     }
