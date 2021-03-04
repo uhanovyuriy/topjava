@@ -7,11 +7,15 @@ import ru.javawebinar.topjava.model.User;
 import ru.javawebinar.topjava.repository.MealRepository;
 import ru.javawebinar.topjava.util.Util;
 import ru.javawebinar.topjava.util.ValidationUtil;
+import ru.javawebinar.topjava.util.exception.NotFoundException;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Repository
 @Transactional(readOnly = true)
@@ -21,20 +25,21 @@ public class JpaMealRepository implements MealRepository {
     private EntityManager em;
 
     @Override
+    @Transactional
     public Meal save(Meal meal, int userId) {
         if (meal.isNew()) {
-            meal.setUser(new User(userId));
+            User user = em.getReference(User.class, userId);
+            meal.setUser(user);
             em.persist(meal);
             return meal;
         } else {
-            if (meal.getUser().getId() == userId) {
-                return em.merge(meal);
-            }
+            ValidationUtil.checkNotFoundWithId(meal.getUser(), userId);
+            return em.merge(meal);
         }
-        return null;
     }
 
     @Override
+    @Transactional
     public boolean delete(int id, int userId) {
         return em.createNamedQuery(Meal.DELETE)
                 .setParameter("id", id)
@@ -44,22 +49,29 @@ public class JpaMealRepository implements MealRepository {
 
     @Override
     public Meal get(int id, int userId) {
-        Meal meal = em.find(Meal.class, id);
-        return meal.getUser().getId() == userId ? meal : null;
+        Meal meal = null;
+        try {
+            meal = em.createNamedQuery(Meal.GET, Meal.class)
+                    .setParameter("id", id)
+                    .setParameter("uid", userId)
+                    .getSingleResult();
+        } catch (NoResultException e) {
+            throw new NotFoundException("Not found entity with id:" + id);
+        }
+        ValidationUtil.checkNotFoundWithId(meal, id);
+        return meal;
     }
 
     @Override
-    @SuppressWarnings(value = "unchecked")
     public List<Meal> getAll(int userId) {
-        return em.createNamedQuery(Meal.GET_ALL)
+        return em.createNamedQuery(Meal.GET_ALL, Meal.class)
                 .setParameter("uid", userId)
                 .getResultList();
     }
 
     @Override
-    @SuppressWarnings(value = "unchecked")
     public List<Meal> getBetweenHalfOpen(LocalDateTime startDateTime, LocalDateTime endDateTime, int userId) {
-        return em.createNamedQuery(Meal.GET_BETWEEN_HALF_OPEN)
+        return em.createNamedQuery(Meal.GET_BETWEEN_HALF_OPEN, Meal.class)
                 .setParameter("uid", userId)
                 .setParameter("sdt", startDateTime)
                 .setParameter("edt", endDateTime)
